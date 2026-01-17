@@ -2,6 +2,7 @@ package com.ducilio.login_auth_api.controllers;
 
 import com.ducilio.login_auth_api.domain.user.User;
 import com.ducilio.login_auth_api.dto.LoginRequestDTO;
+import com.ducilio.login_auth_api.dto.RegisterRequestDTO;
 import com.ducilio.login_auth_api.dto.ResponseDTO;
 import com.ducilio.login_auth_api.infra.security.TokenService;
 import com.ducilio.login_auth_api.repositories.UserRepository;
@@ -12,6 +13,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
@@ -27,6 +30,23 @@ public class AuthController {
         if(passwordEncoder.matches(body.password(), user.getPassword())) {
             String token = this.tokenService.generateToken(user);
             return ResponseEntity.ok(new ResponseDTO(user.getName(), token));
+        }
+        return ResponseEntity.badRequest().build();
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity register(@RequestBody RegisterRequestDTO body){
+        Optional<User> user = this.userRepository.findByEmail(body.email());
+
+        if(user.isEmpty()) {
+            User newUser = new User();
+            newUser.setPassword(passwordEncoder.encode(body.password()));
+            newUser.setEmail(body.email());
+            newUser.setName(body.name());
+            this.userRepository.save(newUser);
+
+            String token = this.tokenService.generateToken(newUser);
+            return ResponseEntity.ok(new ResponseDTO(newUser.getName(), token));
         }
         return ResponseEntity.badRequest().build();
     }
